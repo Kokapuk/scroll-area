@@ -1,0 +1,112 @@
+@import '../../globals.scss';
+$scroll-size: 10px;
+$scroll-padding: 10px;
+
+.container {
+  flex-grow: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+
+  &_verticalScrollVisible {
+    padding-right: calc($scroll-padding * 3 + $scroll-size);
+  }
+
+  &_horizontalScrollVisible {
+    padding-bottom: calc($scroll-padding * 3 + $scroll-size);
+  }
+}
+
+.scrollArea {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+.track {
+  display: flex;
+  justify-content: flex-end;
+  position: absolute;
+  background-color: transparent;
+  border: 0;
+  opacity: 0;
+  transition: $transition-duration opacity;
+
+  @media screen and (width > 767px) {
+    .container:hover &:not(:hover):not(:active) {
+      opacity: 0.5;
+    }
+
+    &:hover,
+    &:active {
+      opacity: 1;
+    }
+  }
+
+  @media screen and (width <= 767px) {
+    pointer-events: none;
+
+    &_scrolling {
+      opacity: 0.5;
+    }
+  }
+
+  &_vertical {
+    width: $scroll-size;
+    top: $scroll-padding;
+    right: $scroll-padding;
+    bottom: calc($scroll-size + $scroll-padding);
+  }
+
+  &_horizontal {
+    height: $scroll-size;
+    left: $scroll-padding;
+    right: calc($scroll-size + $scroll-padding);
+    bottom: $scroll-padding;
+    flex-direction: column;
+  }
+
+  &__thumb {
+    background-color: $primary-black;
+    border-radius: calc($scroll-size / 2);
+    border: 0;
+    transition-duration: $transition-duration;
+    cursor: inherit;
+
+    &_vertical {
+      transition-property: width;
+      width: 50%;
+    }
+
+    &_horizontal {
+      transition-property: height;
+      height: 50%;
+    }
+  }
+
+  @media screen and (width > 767px) {
+    &:hover &__thumb_vertical,
+    &:active &__thumb_vertical {
+      width: 100%;
+    }
+
+    &:hover &__thumb_horizontal,
+    &:active &__thumb_horizontal {
+      height: 100%;
+    }
+  }
+}
+
+.shadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: calc($scroll-padding * 3);
+  height: 150px;
+  background: linear-gradient(180deg, white 31.47%, rgba(255, 255, 255, 0) 100%);
+}

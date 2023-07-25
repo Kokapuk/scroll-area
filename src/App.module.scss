@@ -1,0 +1,28 @@
+@import './globals.scss';
+
+.modal {
+  border-radius: 10px;
+  max-height: 40%;
+  display: flex;
+  box-shadow: 0px 6px 12px 0px rgba(24, 39, 75, 0.12);
+
+  &__content {
+    width: fit-content;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: fadeIn 200ms;
+  }
+
+  &__scrollArea {
+    padding: 32px;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    max-height: 0px;
+  }
+  to {
+    max-height: 48px;
+  }
+}
