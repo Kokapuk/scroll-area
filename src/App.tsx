@@ -13,7 +13,7 @@ function App() {
             const content = 'Content '.repeat(index + 1);
 
             return (
-              <h1 key={content} className={styles.modal__content}>
+              <h1 key={content} className={styles.content}>
                 {content}
               </h1>
             );

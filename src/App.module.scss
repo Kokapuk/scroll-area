@@ -6,14 +6,14 @@
   display: flex;
   box-shadow: 0px 6px 12px 0px rgba(24, 39, 75, 0.12);
   padding: 25px;
+}
 
-  &__content {
-    background-color: $primary-black;
-    width: fit-content;
-    white-space: nowrap;
-    overflow: hidden;
-    animation: fadeIn 200ms;
-  }
+.content {
+  background-color: $primary-black;
+  width: fit-content;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: fadeIn 200ms;
 }
 
 @keyframes fadeIn {

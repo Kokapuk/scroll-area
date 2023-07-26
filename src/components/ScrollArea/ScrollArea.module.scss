@@ -8,11 +8,11 @@ $scroll-padding: 6px;
   position: relative;
   overflow: hidden;
 
-  &_verticalScrollVisible {
+  &.verticalScrollVisible {
     padding-right: calc($scroll-padding + $scroll-size);
   }
 
-  &_horizontalScrollVisible {
+  &.horizontalScrollVisible {
     padding-bottom: calc($scroll-padding + $scroll-size);
   }
 }
@@ -51,74 +51,81 @@ $scroll-padding: 6px;
   @media screen and (width <= 767px) {
     pointer-events: none;
 
-    &_scrolling {
+    &.showScroll {
       opacity: 0.5;
     }
   }
 
-  &_vertical {
+  &.vertical {
     width: $scroll-size;
-    top: $scroll-padding;
+    top: 0;
     right: 0;
-    bottom: calc($scroll-size + $scroll-padding);
+    bottom: 0;
+
+    &.horizontalScrollVisible {
+      bottom: $scroll-size;
+    }
   }
 
-  &_horizontal {
+  &.horizontal {
     height: $scroll-size;
-    left: $scroll-padding;
-    right: calc($scroll-size + $scroll-padding);
+    left: 0;
+    right: 0;
     bottom: 0;
     flex-direction: column;
+
+    &.verticalScrollVisible {
+      right: $scroll-size;
+    }
+  }
+}
+
+.thumb {
+  background-color: $primary-black;
+  border-radius: calc($scroll-size / 2);
+  border: 0;
+  transition-duration: $transition-duration;
+
+  &.vertical {
+    transition-property: width;
+    width: 50%;
   }
 
-  &__thumb {
-    background-color: $primary-black;
-    border-radius: calc($scroll-size/ 2);
-    border: 0;
-    transition-duration: $transition-duration;
-    cursor: inherit;
-
-    &_vertical {
-      transition-property: width;
-      width: 50%;
-    }
-
-    &_horizontal {
-      transition-property: height;
-      height: 50%;
-    }
+  &.horizontal {
+    transition-property: height;
+    height: 50%;
   }
 
   @media screen and (width > 767px) {
-    &:hover &__thumb_vertical,
-    &:active &__thumb_vertical {
+    .track:hover &.vertical,
+    .track:active &.vertical {
       width: 100%;
     }
 
-    &:hover &__thumb_horizontal,
-    &:active &__thumb_horizontal {
+    .track:hover &.horizontal,
+    .track:active &.horizontal {
       height: 100%;
     }
   }
 }
 
 .shadow {
-  pointer-events: none;
   position: absolute;
   left: 0;
   right: calc($scroll-padding + $scroll-size);
   height: 34px;
   background: linear-gradient(white 31.47%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
 
-  &_top {
+  &.top {
     top: 0;
   }
 
-  &_bottom {
+  &.bottom {
     rotate: 180deg;
     bottom: 0;
 
-    &_horizontalScrollVisible {
+    &.horizontalScrollVisible {
       bottom: calc($scroll-padding + $scroll-size);
     }
   }

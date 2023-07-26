@@ -1,16 +1,17 @@
 import classNames from 'classnames';
-import { HTMLAttributes, ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import styles from './ScrollArea.module.scss';
 import { debounce } from 'debounce';
+import { HTMLAttributes, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import styles from './ScrollArea.module.scss';
 
 interface Props {
   children: ReactNode;
 }
 
-const maxShadowOpacityScrollOffset = 50;
+const maxShadowOpacitySensitivity = 50;
 
 const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElement>) => {
   const scrollArea = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const verticalTrack = useRef<HTMLButtonElement>(null);
   const horizontalTrack = useRef<HTMLButtonElement>(null);
   const verticalThumb = useRef<HTMLDivElement>(null);
@@ -19,27 +20,31 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
   const [horizontalThumbSize, setHorizontalThumbSize] = useState(100);
   const [verticalThumbOffset, setVerticalThumbOffset] = useState(0);
   const [horizontalThumbOffset, setHorizontalThumbOffset] = useState(0);
+
+  // Desktop Only
   const [isVerticalBarActive, setVerticalBarActive] = useState(false);
   const [isHorizontalBarActive, setHorizontalBarActive] = useState(false);
+
   const [topShadowOpacity, setTopShadowOpacity] = useState(0);
   const [bottomShadowOpacity, setBottomShadowOpacity] = useState(0);
-  const [lastMousePosition, setLastMousePosition] = useState<{ x: number; y: number } | null>(null);
-  const [isScrolling, setScrolling] = useState(false);
+
+  // Mobile only
+  const [showScroll, setShowScroll] = useState(false);
 
   const updateThumbSize = () => {
-    if (!scrollArea.current) {
+    if (!scrollArea.current || !content.current) {
       return;
     }
 
-    setVerticalThumbSize(scrollArea.current.clientHeight / scrollArea.current.scrollHeight);
+    setVerticalThumbSize(scrollArea.current.clientHeight / content.current.clientHeight);
     setHorizontalThumbSize(scrollArea.current.clientWidth / scrollArea.current.scrollWidth);
   };
 
   const updateThumbOffset = () => {
-    if (verticalTrack.current && verticalThumb.current && scrollArea.current) {
+    if (verticalTrack.current && verticalThumb.current && scrollArea.current && content.current) {
       setVerticalThumbOffset(
         (verticalTrack.current.clientHeight - verticalThumb.current.clientHeight) *
-          (scrollArea.current.scrollTop / (scrollArea.current.scrollHeight - scrollArea.current.clientHeight))
+          (scrollArea.current.scrollTop / (content.current.clientHeight - scrollArea.current.clientHeight))
       );
     }
 
@@ -52,49 +57,67 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
   };
 
   const hideScroll = debounce(() => {
-    setScrolling(false);
-  }, 1500);
+    setShowScroll(false);
+  }, 1750);
 
   const memoizedHideScroll = useCallback(hideScroll, []);
 
-  const updateScrolling = () => {
-    setScrolling(true);
+  const revealScroll = () => {
+    setShowScroll(true);
     memoizedHideScroll();
   };
 
   const updateShadows = () => {
     if (scrollArea.current) {
-      if (scrollArea.current.scrollTop > maxShadowOpacityScrollOffset) {
+      if (scrollArea.current.scrollTop > maxShadowOpacitySensitivity) {
         setTopShadowOpacity(1);
       } else {
-        setTopShadowOpacity(scrollArea.current.scrollTop / maxShadowOpacityScrollOffset);
+        setTopShadowOpacity(scrollArea.current.scrollTop / maxShadowOpacitySensitivity);
       }
     }
 
-    if (scrollArea.current) {
-      const scrollBottom = scrollArea.current.scrollHeight - scrollArea.current.clientHeight - scrollArea.current.scrollTop;
+    if (scrollArea.current && content.current) {
+      const scrollBottom = content.current.clientHeight - scrollArea.current.clientHeight - scrollArea.current.scrollTop;
 
-      if (scrollBottom > maxShadowOpacityScrollOffset) {
+      if (scrollBottom > maxShadowOpacitySensitivity) {
         setBottomShadowOpacity(1);
       } else {
-        setBottomShadowOpacity(scrollBottom / maxShadowOpacityScrollOffset);
+        setBottomShadowOpacity(scrollBottom / maxShadowOpacitySensitivity);
       }
     }
   };
 
   const handleScroll = () => {
-    updateScrolling();
+    revealScroll();
     updateThumbOffset();
     updateShadows();
   };
 
+  const scrollVerticallyToCursor = (cursorPos: number) => {
+    if (!scrollArea.current || !content.current || !verticalTrack.current) {
+      return;
+    }
+
+    scrollArea.current.scrollTop =
+      ((cursorPos - verticalTrack.current.getBoundingClientRect().y) / verticalTrack.current.clientHeight) *
+        content.current.clientHeight -
+      verticalTrack.current.clientHeight / 2;
+  };
+
+  const scrollHorizontallyToCursor = (cursorPos: number) => {
+    if (!scrollArea.current || !horizontalTrack.current) {
+      return;
+    }
+
+    scrollArea.current!.scrollLeft =
+      ((cursorPos - horizontalTrack.current!.getBoundingClientRect().x) / horizontalTrack.current!.clientWidth) *
+        scrollArea.current!.scrollWidth -
+      horizontalTrack.current!.clientWidth / 2;
+  };
+
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (!lastMousePosition) {
-        return setLastMousePosition({ x: 0, y: 0 });
-      }
-
-      if (isVerticalBarActive && scrollArea.current && verticalTrack.current) {
+      if (isVerticalBarActive) {
         if (verticalTrack.current && verticalTrack.current.getBoundingClientRect().bottom < event.y) {
           return;
         }
@@ -103,13 +126,10 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
           return;
         }
 
-        scrollArea.current.scrollTop =
-          ((event.clientY - verticalTrack.current.getBoundingClientRect().y) / verticalTrack.current.clientHeight) *
-            scrollArea.current.scrollHeight -
-          verticalTrack.current.clientHeight / 2;
+        scrollVerticallyToCursor(event.clientY);
       }
 
-      if (isHorizontalBarActive && scrollArea.current && horizontalTrack.current) {
+      if (isHorizontalBarActive) {
         if (horizontalTrack.current && horizontalTrack.current.getBoundingClientRect().right < event.x) {
           return;
         }
@@ -118,13 +138,8 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
           return;
         }
 
-        scrollArea.current.scrollLeft =
-          ((event.clientX - horizontalTrack.current.getBoundingClientRect().x) / horizontalTrack.current.clientWidth) *
-            scrollArea.current.scrollWidth -
-          horizontalTrack.current.clientWidth / 2;
+        scrollHorizontallyToCursor(event.clientX);
       }
-
-      setLastMousePosition({ x: event.x, y: event.y });
     };
 
     const handleMouseUp = () => {
@@ -139,36 +154,31 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isHorizontalBarActive, isVerticalBarActive, lastMousePosition]);
+  }, [isHorizontalBarActive, isVerticalBarActive]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const handleResize = () => {
       updateThumbSize();
       updateThumbOffset();
       updateShadows();
+      revealScroll();
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
 
-    return () => window.removeEventListener('resize', handleResize);
-  }, [scrollArea.current?.scrollHeight, scrollArea.current?.scrollWidth]);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(content.current!);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const handleVerticalBarMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
-    scrollArea.current!.scrollTop =
-      ((event.clientY - verticalTrack.current!.getBoundingClientRect().y) / verticalTrack.current!.clientHeight) *
-        scrollArea.current!.scrollHeight -
-      verticalTrack.current!.clientHeight / 2;
-
+    scrollVerticallyToCursor(event.clientY);
     setVerticalBarActive(true);
   };
 
   const handleHorizontalBarMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
-    scrollArea.current!.scrollLeft =
-      ((event.clientX - horizontalTrack.current!.getBoundingClientRect().x) / horizontalTrack.current!.clientWidth) *
-        scrollArea.current!.scrollWidth -
-      horizontalTrack.current!.clientWidth / 2;
-
+    scrollHorizontallyToCursor(event.clientX);
     setHorizontalBarActive(true);
   };
 
@@ -178,20 +188,25 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
       className={classNames(
         styles.container,
         props.className,
-        verticalThumbSize < 1 && styles.container_verticalScrollVisible,
-        horizontalThumbSize < 1 && styles.container_horizontalScrollVisible
+        verticalThumbSize < 1 && styles.verticalScrollVisible,
+        horizontalThumbSize < 1 && styles.horizontalScrollVisible
       )}
     >
       {verticalThumbSize < 1 && (
         <button
           onMouseDown={handleVerticalBarMouseDown}
           ref={verticalTrack}
-          className={classNames(styles.track, styles.track_vertical, isScrolling && styles.track_scrolling)}
+          className={classNames(
+            styles.track,
+            styles.vertical,
+            showScroll && styles.showScroll,
+            horizontalThumbSize < 1 && styles.horizontalScrollVisible
+          )}
         >
-          <div
+          <span
             ref={verticalThumb}
             style={{ height: `${verticalThumbSize * 100}%`, marginTop: `${verticalThumbOffset}px` }}
-            className={classNames(styles.track__thumb, styles.track__thumb_vertical)}
+            className={classNames(styles.thumb, styles.vertical)}
           />
         </button>
       )}
@@ -199,26 +214,27 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
         <button
           onMouseDown={handleHorizontalBarMouseDown}
           ref={horizontalTrack}
-          className={classNames(styles.track, styles.track_horizontal, isScrolling && styles.track_scrolling)}
+          className={classNames(
+            styles.track,
+            styles.horizontal,
+            showScroll && styles.showScroll,
+            verticalThumbSize < 1 && styles.verticalScrollVisible
+          )}
         >
-          <div
+          <span
             ref={horizontalThumb}
             style={{ width: `${horizontalThumbSize * 100}%`, marginLeft: `${horizontalThumbOffset}px` }}
-            className={classNames(styles.track__thumb, styles.track__thumb_horizontal)}
+            className={classNames(styles.thumb, styles.horizontal)}
           />
         </button>
       )}
-      <div style={{ opacity: topShadowOpacity }} className={classNames(styles.shadow, styles.shadow_top)} />
+      <div style={{ opacity: topShadowOpacity }} className={classNames(styles.shadow, styles.top)} />
       <div
         style={{ opacity: bottomShadowOpacity }}
-        className={classNames(
-          styles.shadow,
-          styles.shadow_bottom,
-          horizontalThumbSize < 1 && styles.shadow_bottom_horizontalScrollVisible
-        )}
+        className={classNames(styles.shadow, styles.bottom, horizontalThumbSize < 1 && styles.horizontalScrollVisible)}
       />
       <div ref={scrollArea} onScroll={handleScroll} className={styles.scrollArea}>
-        {children}
+        <div ref={content}>{children}</div>
       </div>
     </div>
   );
