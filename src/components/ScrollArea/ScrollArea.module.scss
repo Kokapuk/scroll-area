@@ -1,6 +1,6 @@
 @import '../../globals.scss';
-$scroll-size: 10px;
-$scroll-padding: 10px;
+$scroll-size: 6px;
+$scroll-padding: 6px;
 
 .container {
   flex-grow: 1;
@@ -9,11 +9,11 @@ $scroll-padding: 10px;
   overflow: hidden;
 
   &_verticalScrollVisible {
-    padding-right: calc($scroll-padding * 3 + $scroll-size);
+    padding-right: calc($scroll-padding + $scroll-size);
   }
 
   &_horizontalScrollVisible {
-    padding-bottom: calc($scroll-padding * 3 + $scroll-size);
+    padding-bottom: calc($scroll-padding + $scroll-size);
   }
 }
 
@@ -59,7 +59,7 @@ $scroll-padding: 10px;
   &_vertical {
     width: $scroll-size;
     top: $scroll-padding;
-    right: $scroll-padding;
+    right: 0;
     bottom: calc($scroll-size + $scroll-padding);
   }
 
@@ -67,13 +67,13 @@ $scroll-padding: 10px;
     height: $scroll-size;
     left: $scroll-padding;
     right: calc($scroll-size + $scroll-padding);
-    bottom: $scroll-padding;
+    bottom: 0;
     flex-direction: column;
   }
 
   &__thumb {
     background-color: $primary-black;
-    border-radius: calc($scroll-size / 2);
+    border-radius: calc($scroll-size/ 2);
     border: 0;
     transition-duration: $transition-duration;
     cursor: inherit;
@@ -103,10 +103,23 @@ $scroll-padding: 10px;
 }
 
 .shadow {
+  pointer-events: none;
   position: absolute;
   left: 0;
-  top: 0;
-  right: calc($scroll-padding * 3);
-  height: 150px;
-  background: linear-gradient(180deg, white 31.47%, rgba(255, 255, 255, 0) 100%);
+  right: calc($scroll-padding + $scroll-size);
+  height: 34px;
+  background: linear-gradient(white 31.47%, rgba(255, 255, 255, 0) 100%);
+
+  &_top {
+    top: 0;
+  }
+
+  &_bottom {
+    rotate: 180deg;
+    bottom: 0;
+
+    &_horizontalScrollVisible {
+      bottom: calc($scroll-padding + $scroll-size);
+    }
+  }
 }

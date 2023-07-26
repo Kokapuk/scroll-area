@@ -7,6 +7,8 @@ interface Props {
   children: ReactNode;
 }
 
+const maxShadowOpacityScrollOffset = 50;
+
 const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElement>) => {
   const scrollArea = useRef<HTMLDivElement>(null);
   const verticalTrack = useRef<HTMLButtonElement>(null);
@@ -18,7 +20,9 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
   const [verticalThumbOffset, setVerticalThumbOffset] = useState(0);
   const [horizontalThumbOffset, setHorizontalThumbOffset] = useState(0);
   const [isVerticalBarActive, setVerticalBarActive] = useState(false);
-  const [isHorizontalBarActive, setHorizontalScrollActive] = useState(false);
+  const [isHorizontalBarActive, setHorizontalBarActive] = useState(false);
+  const [topShadowOpacity, setTopShadowOpacity] = useState(0);
+  const [bottomShadowOpacity, setBottomShadowOpacity] = useState(0);
   const [lastMousePosition, setLastMousePosition] = useState<{ x: number; y: number } | null>(null);
   const [isScrolling, setScrolling] = useState(false);
 
@@ -58,9 +62,30 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
     memoizedHideScroll();
   };
 
+  const updateShadows = () => {
+    if (scrollArea.current) {
+      if (scrollArea.current.scrollTop > maxShadowOpacityScrollOffset) {
+        setTopShadowOpacity(1);
+      } else {
+        setTopShadowOpacity(scrollArea.current.scrollTop / maxShadowOpacityScrollOffset);
+      }
+    }
+
+    if (scrollArea.current) {
+      const scrollBottom = scrollArea.current.scrollHeight - scrollArea.current.clientHeight - scrollArea.current.scrollTop;
+
+      if (scrollBottom > maxShadowOpacityScrollOffset) {
+        setBottomShadowOpacity(1);
+      } else {
+        setBottomShadowOpacity(scrollBottom / maxShadowOpacityScrollOffset);
+      }
+    }
+  };
+
   const handleScroll = () => {
     updateScrolling();
     updateThumbOffset();
+    updateShadows();
   };
 
   useEffect(() => {
@@ -77,8 +102,11 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
         if (verticalTrack.current && verticalTrack.current.getBoundingClientRect().top > event.y) {
           return;
         }
-        scrollArea.current.scrollTop +=
-          (event.y - lastMousePosition.y) * (scrollArea.current.scrollHeight / verticalTrack.current.clientHeight);
+
+        scrollArea.current.scrollTop =
+          ((event.clientY - verticalTrack.current.getBoundingClientRect().y) / verticalTrack.current.clientHeight) *
+            scrollArea.current.scrollHeight -
+          verticalTrack.current.clientHeight / 2;
       }
 
       if (isHorizontalBarActive && scrollArea.current && horizontalTrack.current) {
@@ -90,8 +118,10 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
           return;
         }
 
-        scrollArea.current.scrollLeft +=
-          (event.x - lastMousePosition.x) * (scrollArea.current.scrollWidth / horizontalTrack.current.clientWidth);
+        scrollArea.current.scrollLeft =
+          ((event.clientX - horizontalTrack.current.getBoundingClientRect().x) / horizontalTrack.current.clientWidth) *
+            scrollArea.current.scrollWidth -
+          horizontalTrack.current.clientWidth / 2;
       }
 
       setLastMousePosition({ x: event.x, y: event.y });
@@ -99,7 +129,7 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
 
     const handleMouseUp = () => {
       setVerticalBarActive(false);
-      setHorizontalScrollActive(false);
+      setHorizontalBarActive(false);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -115,6 +145,7 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
     const handleResize = () => {
       updateThumbSize();
       updateThumbOffset();
+      updateShadows();
     };
 
     handleResize();
@@ -122,6 +153,24 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
 
     return () => window.removeEventListener('resize', handleResize);
   }, [scrollArea.current?.scrollHeight, scrollArea.current?.scrollWidth]);
+
+  const handleVerticalBarMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    scrollArea.current!.scrollTop =
+      ((event.clientY - verticalTrack.current!.getBoundingClientRect().y) / verticalTrack.current!.clientHeight) *
+        scrollArea.current!.scrollHeight -
+      verticalTrack.current!.clientHeight / 2;
+
+    setVerticalBarActive(true);
+  };
+
+  const handleHorizontalBarMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+    scrollArea.current!.scrollLeft =
+      ((event.clientX - horizontalTrack.current!.getBoundingClientRect().x) / horizontalTrack.current!.clientWidth) *
+        scrollArea.current!.scrollWidth -
+      horizontalTrack.current!.clientWidth / 2;
+
+    setHorizontalBarActive(true);
+  };
 
   return (
     <div
@@ -135,7 +184,7 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
     >
       {verticalThumbSize < 1 && (
         <button
-          onMouseDown={() => setVerticalBarActive(true)}
+          onMouseDown={handleVerticalBarMouseDown}
           ref={verticalTrack}
           className={classNames(styles.track, styles.track_vertical, isScrolling && styles.track_scrolling)}
         >
@@ -148,7 +197,7 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
       )}
       {horizontalThumbSize < 1 && (
         <button
-          onMouseDown={() => setHorizontalScrollActive(true)}
+          onMouseDown={handleHorizontalBarMouseDown}
           ref={horizontalTrack}
           className={classNames(styles.track, styles.track_horizontal, isScrolling && styles.track_scrolling)}
         >
@@ -159,7 +208,15 @@ const ScrollArea = ({ children, ...props }: Props & HTMLAttributes<HTMLDivElemen
           />
         </button>
       )}
-      <div className={styles.shadow} />
+      <div style={{ opacity: topShadowOpacity }} className={classNames(styles.shadow, styles.shadow_top)} />
+      <div
+        style={{ opacity: bottomShadowOpacity }}
+        className={classNames(
+          styles.shadow,
+          styles.shadow_bottom,
+          horizontalThumbSize < 1 && styles.shadow_bottom_horizontalScrollVisible
+        )}
+      />
       <div ref={scrollArea} onScroll={handleScroll} className={styles.scrollArea}>
         {children}
       </div>
