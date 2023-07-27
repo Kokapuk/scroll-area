@@ -8,6 +8,7 @@ function App() {
   return (
     <>
       <div className={styles.modal}>
+        <h2 style={{ marginBottom: 15 }}>Modal Header</h2>
         <ScrollArea>
           {new Array(contentAmount).fill(0).map((_item, index) => {
             const content = 'Content '.repeat(index + 1);

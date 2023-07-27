@@ -3,8 +3,7 @@ $scroll-size: 6px;
 $scroll-padding: 6px;
 
 .container {
-  flex-grow: 1;
-  width: 100%;
+  display: flex;
   position: relative;
   overflow: hidden;
 
@@ -18,7 +17,7 @@ $scroll-padding: 6px;
 }
 
 .scrollArea {
-  height: 100%;
+  flex-grow: 1;
   width: 100%;
   overflow: auto;
 
